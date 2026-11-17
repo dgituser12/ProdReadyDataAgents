@@ -13,3 +13,11 @@ Load: install `google-cloud-bigquery`, authenticate using an approved ADC flow, 
 Business rules: supplier risk is a profile tier (LOW/MEDIUM/HIGH), distinct from observed delivery performance calculated from fulfilment orders. Standard lead time lives only on suppliers. Monetary fields use GBP and `_gbp` suffixes. Inventory status is CRITICAL below 50% of safety stock, AT_RISK from 50% to below 100%, and HEALTHY at or above 100%. DELAYED means open and overdue at snapshot; IN_TRANSIT and PROCESSING are open but not overdue.
 
 All data is fictional. BigQuery charges may apply. Delete the dataset when no longer needed, after checking the project and dataset identifiers.
+
+## Calculate canonical business metrics
+
+```bash
+python scripts/calculate_metrics.py --input-dir data/sample --output data/sample/business_metrics.json
+```
+
+This writes inventory, fulfilment and supplier performance summaries using the inventory snapshot date as the as-of date. Definitions and SQL equivalents live in `semantic_catalogue/`.
