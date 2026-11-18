@@ -21,3 +21,12 @@ python scripts/calculate_metrics.py --input-dir data/sample --output data/sample
 ```
 
 This writes inventory, fulfilment and supplier performance summaries using the inventory snapshot date as the as-of date. Definitions and SQL equivalents live in `semantic_catalogue/`.
+
+## Agent routing and orchestration evaluations
+
+```bash
+python scripts/evaluate_router.py
+python scripts/evaluate_multi_agent.py
+```
+
+The first script evaluates the deterministic single-domain/cross-domain route baseline. The second evaluates expected specialist targets for a small multi-agent fixture. These are local labelled fixtures, not evaluations of live LLM delegation or answer quality.

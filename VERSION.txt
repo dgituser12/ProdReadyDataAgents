@@ -1,0 +1,5 @@
+GDG Essex Enterprise Data Agents Workshop Assets
+Version: Orchestration v2
+Architecture: progressive single-agent -> domain specialists -> coordinator-led multi-agent
+Base: data-agent-workshop-with-orchestration-v1.zip
+ADK target: google-adk==2.14.0
