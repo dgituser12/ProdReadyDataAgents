@@ -76,3 +76,49 @@ SELECT
   SUM(IF(is_overdue_open_order, order_value_gbp, 0)) AS delayed_open_order_value_gbp
 FROM `PROJECT_ID.gdg_essex_data_agents.v_fulfillment_order_exposure`
 GROUP BY as_of_date;
+
+-- Cross-domain supplier risk: aggregate each fact domain to supplier grain
+-- before joining, preventing inventory x orders fan-out.
+CREATE OR REPLACE VIEW `PROJECT_ID.gdg_essex_data_agents.v_supplier_cross_domain_risk` AS
+WITH inventory_by_supplier AS (
+  SELECT
+    p.supplier_id,
+    i.snapshot_date,
+    i.warehouse_id,
+    COUNT(DISTINCT IF(i.available_quantity < i.safety_stock, i.product_id, NULL)) AS products_below_safety_stock,
+    SUM(GREATEST(i.safety_stock - i.available_quantity, 0) * p.unit_cost_gbp) AS inventory_value_at_risk_gbp
+  FROM `PROJECT_ID.gdg_essex_data_agents.inventory_snapshot` i
+  JOIN `PROJECT_ID.gdg_essex_data_agents.products` p USING (product_id)
+  GROUP BY p.supplier_id, i.snapshot_date, i.warehouse_id
+),
+orders_by_supplier AS (
+  SELECT
+    supplier_id,
+    as_of_date,
+    COUNTIF(is_overdue_open_order) AS overdue_open_orders,
+    SUM(IF(is_overdue_open_order, order_value_gbp, 0)) AS overdue_open_order_value_gbp
+  FROM `PROJECT_ID.gdg_essex_data_agents.v_fulfillment_order_exposure`
+  GROUP BY supplier_id, as_of_date
+),
+supplier_performance AS (
+  SELECT * FROM `PROJECT_ID.gdg_essex_data_agents.v_supplier_delivery_performance`
+)
+SELECT
+  s.supplier_id,
+  s.supplier_name,
+  s.supplier_risk_tier,
+  s.standard_lead_time_days,
+  s.delivered_orders,
+  s.on_time_delivery_rate,
+  s.late_deliveries,
+  s.average_late_days,
+  i.snapshot_date AS as_of_date,
+  i.warehouse_id,
+  COALESCE(i.products_below_safety_stock, 0) AS products_below_safety_stock,
+  COALESCE(i.inventory_value_at_risk_gbp, 0) AS inventory_value_at_risk_gbp,
+  COALESCE(o.overdue_open_orders, 0) AS overdue_open_orders,
+  COALESCE(o.overdue_open_order_value_gbp, 0) AS overdue_open_order_value_gbp
+FROM supplier_performance s
+LEFT JOIN inventory_by_supplier i USING (supplier_id)
+LEFT JOIN orders_by_supplier o
+  ON o.supplier_id = s.supplier_id AND o.as_of_date = i.snapshot_date;

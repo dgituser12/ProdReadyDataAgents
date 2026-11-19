@@ -85,6 +85,9 @@ class SupplyChainBigQueryTools:
             "row_count": len(rows),
             "row_limit": safe_limit,
             "read_only": True,
+            "query_sql": sql,
+            "source_view": (re.search(r"FROM\s+`[^`]+\.([^`.]+)`", sql, re.IGNORECASE).group(1)
+                           if re.search(r"FROM\s+`[^`]+\.([^`.]+)`", sql, re.IGNORECASE) else None),
         }
 
     def inventory_risk(
@@ -181,6 +184,21 @@ class SupplyChainBigQueryTools:
         """
         return self._query(sql, [], 100)
 
+    def supplier_cross_domain_risk(self, limit: int = 20) -> dict[str, Any]:
+        """Compare supplier delivery performance with attributed inventory and overdue-order exposure."""
+        sql = f"""
+        SELECT supplier_id, supplier_name, supplier_risk_tier, standard_lead_time_days,
+               delivered_orders, on_time_delivery_rate, late_deliveries, average_late_days,
+               as_of_date, warehouse_id, products_below_safety_stock,
+               inventory_value_at_risk_gbp, overdue_open_orders,
+               overdue_open_order_value_gbp
+        FROM `{self.project_id}.{self.dataset_id}.v_supplier_cross_domain_risk`
+        ORDER BY inventory_value_at_risk_gbp DESC, overdue_open_order_value_gbp DESC,
+                 on_time_delivery_rate ASC NULLS FIRST, supplier_id
+        LIMIT @row_limit
+        """
+        return self._query(sql, [], limit)
+
     def fulfillment_summary(self) -> dict[str, Any]:
         """Return portfolio-level fulfilment exposure and delivery performance."""
         sql = f"""
@@ -219,6 +237,7 @@ def build_tool_functions(project_id: str, dataset_id: str = DEFAULT_DATASET,
         "get_fulfillment_exposure": governed("fulfillment.overdue_open_orders", tools.fulfillment_exposure),
         "get_inventory_summary": governed("inventory.shortage_units", tools.inventory_summary),
         "get_fulfillment_summary": governed("fulfillment.delayed_open_order_value_gbp", tools.fulfillment_summary),
+        "get_supplier_cross_domain_risk": governed("supplier.inventory_exposure_gbp", tools.supplier_cross_domain_risk),
     }
 
 

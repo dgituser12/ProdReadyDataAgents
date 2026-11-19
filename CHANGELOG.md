@@ -44,3 +44,20 @@
 - Added confidence inspection, configurable threshold, deterministic route fallback, and safe omission of urgency/severity when confidence is low or the API fails.
 - Added unit tests for the single-request contract, low-confidence fallback and API-error fallback.
 - Core workshop remains unchanged; the optional section is disabled by default and does not add time to the 150-minute agenda.
+
+## Data Agent strengthening
+
+- Added a deterministic semantic query planner that resolves business questions to approved metrics and dimensions, with clarification for unsupported questions.
+- Added supplier cross-domain semantic metrics and `v_supplier_cross_domain_risk`, aggregating inventory and overdue orders independently at supplier grain before joining.
+- Expanded metric/evidence metadata and specialist instructions to preserve formula, unit, grain, snapshot/as-of date, denominator, caveats and non-causal attribution.
+- Added guided exercises to all three Colab notebooks for question-to-plan resolution, metric-contract inspection, grain/fan-out reasoning and cross-domain evidence retrieval.
+
+
+## Data Agent strengthening — schema, query governance and provenance
+
+- Added allow-listed BigQuery schema discovery for approved semantic views.
+- Added conservative single-statement SELECT validation, approved-view checks and required numeric LIMIT.
+- Added BigQuery dry-run cost estimation and `maximum_bytes_billed` enforcement before execution.
+- Added evidence provenance containing metric contract, source view, snapshot date, retrieval time, query SHA-256, job ID/bytes when available, row count and validation checks.
+- Expanded all three Colab notebooks with practical schema discovery, query validation and evidence-lineage exercises.
+- Added governance-control unit tests.

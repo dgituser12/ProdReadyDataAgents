@@ -1,25 +1,33 @@
-"""Optional Gemini Decision 1 client factory for bounded route classification."""
+"""Optional Gemini Decision 1 client and structured supply-chain assessment."""
 from __future__ import annotations
+
 import os
-from typing import Any
+from dataclasses import dataclass
+from importlib.metadata import PackageNotFoundError, version
+from typing import Any, Mapping
 
 
 def create_decision1_client(api_key: str | None = None) -> Any:
-    """Create an explicit AI Studio client for the Decisions API.
-
-    Pass the returned client to orchestration.router.route_question(...,
-    use_decision_model=True, client=client). This avoids accidentally routing
-    the request through the workshop's Vertex AI default client configuration.
-    """
+    """Create an explicit Google AI Studio client for the Decisions API."""
     key = api_key or os.getenv("GEMINI_API_KEY")
     if not key:
         raise ValueError("Set GEMINI_API_KEY only if you choose to run this optional experiment.")
+
+    try:
+        sdk_version = version("google-genai")
+    except PackageNotFoundError:
+        sdk_version = "not-installed"
+
     from google import genai
-    return genai.Client(api_key=key, http_options={"api_version": "v1beta"})
 
-
-from dataclasses import dataclass
-from typing import Mapping
+    client = genai.Client(api_key=key, http_options={"api_version": "v1beta"})
+    if not hasattr(client, "decisions"):
+        raise RuntimeError(
+            "This google-genai SDK does not expose client.decisions. "
+            f"Installed version: {sdk_version}. Upgrade to google-genai>=3.2.0,<4, "
+            "then restart the Colab runtime and rerun the notebook from the top."
+        )
+    return client
 
 
 @dataclass(frozen=True)
@@ -43,13 +51,13 @@ def assess_supply_chain_exception(
     exception_dossier: str,
     client: Any,
     confidence_threshold: float = 0.80,
+    urgency_yes_threshold: float = 0.50,
 ) -> ExceptionAssessment:
-    """Ask several typed questions about ONE exception in a single API call.
+    """Ask three typed questions about ONE dossier in a single API call.
 
-    The API output is advisory classification only. It never authorises a tool,
-    selects a data source, generates SQL, or bypasses the Data Harness. If any
-    required answer is malformed or below the confidence threshold, the caller
-    receives an explicit fallback assessment rather than a partial decision.
+    Decisions API `noul` is a numeric probability of yes, not a bool. `score`
+    uses a zero-based ordered rubric, so the returned 0..4 value is translated
+    to the workshop's human-readable 1..5 severity scale.
     """
     from orchestration.router import deterministic_route, ROUTES, ROUTE_CRITERIA
 
@@ -57,6 +65,13 @@ def assess_supply_chain_exception(
         raise ValueError("exception_dossier must contain one exception record")
     if not 0.0 <= confidence_threshold <= 1.0:
         raise ValueError("confidence_threshold must be between 0 and 1")
+    if not 0.0 <= urgency_yes_threshold <= 1.0:
+        raise ValueError("urgency_yes_threshold must be between 0 and 1")
+    if not hasattr(client, "decisions"):
+        raise RuntimeError(
+            "The supplied client has no Decisions API interface. "
+            "Use create_decision1_client() with google-genai>=3.2.0,<4."
+        )
 
     questions = {
         "route": {
@@ -81,14 +96,24 @@ def assess_supply_chain_exception(
                 "urgent human attention? Answer only from the dossier; do not infer "
                 "missing facts."
             ),
+            "criteria": {
+                "true_description": "Evidence establishes time-sensitive operational or customer impact.",
+                "false_description": "Evidence does not establish a need for urgent intervention.",
+            },
         },
         "severity": {
             "type": "score",
             "instructions": (
                 "Score the operational severity established by this exception. "
-                "Use the defined scale: 1 = low, 2 = limited, 3 = moderate, "
-                "4 = high, 5 = critical. Do not invent missing evidence."
+                "Choose the matching ordered level; do not invent missing evidence."
             ),
+            "criteria": [
+                "Low: limited impact, no immediate operational disruption.",
+                "Minor: contained issue with manageable impact.",
+                "Moderate: material operational impact requiring investigation.",
+                "High: significant service or fulfilment exposure requiring prompt action.",
+                "Critical: severe or widespread disruption with immediate intervention needed.",
+            ],
         },
     }
 
@@ -102,20 +127,26 @@ def assess_supply_chain_exception(
         route_answer = answers["route"]
         urgent_answer = answers["urgent"]
         severity_answer = answers["severity"]
+
         route = str(_answer_value(route_answer, "choice"))
-        urgent = _answer_value(urgent_answer, "noul")
-        severity = float(_answer_value(severity_answer, "score"))
+        noul_probability = float(_answer_value(urgent_answer, "noul"))
+        raw_score = float(_answer_value(severity_answer, "score"))
         confidence = {
             "route": float(_answer_value(route_answer, "confidence")),
             "urgent": float(_answer_value(urgent_answer, "confidence")),
             "severity": float(_answer_value(severity_answer, "confidence")),
         }
-        if route not in ROUTES or not isinstance(urgent, bool):
-            raise ValueError("Decision 1 returned an invalid route or urgency value")
-        if not 1 <= severity <= 5:
-            raise ValueError("Decision 1 severity must be on the defined 1–5 scale")
+
+        if route not in ROUTES:
+            raise ValueError(f"Decision 1 returned an unsupported route: {route!r}")
+        if not 0.0 <= noul_probability <= 1.0:
+            raise ValueError("Decision 1 noul probability must be between 0 and 1")
+        # The API score is an expected score over rubric indices 0..4.
+        if not 0.0 <= raw_score <= 4.0:
+            raise ValueError("Decision 1 score must be between 0 and 4 for this rubric")
         if any(not 0.0 <= value <= 1.0 for value in confidence.values()):
             raise ValueError("Decision 1 returned an invalid confidence value")
+
         low = [name for name, value in confidence.items() if value < confidence_threshold]
         if low:
             fallback = deterministic_route(exception_dossier)
@@ -126,16 +157,26 @@ def assess_supply_chain_exception(
                         f"{', '.join(low)}; route fell back to deterministic rules. "
                         "Urgency and severity are intentionally left unset."),
             )
+
         return ExceptionAssessment(
-            route=route, urgent=urgent, severity=severity, confidence=confidence,
+            route=route,
+            urgent=(noul_probability >= urgency_yes_threshold),
+            severity=raw_score + 1.0,
+            confidence=confidence,
             source="gemini_decision_1",
-            reason="Three typed assessments returned for one exception dossier.",
+            reason=(
+                "Three typed assessments returned for one exception dossier. "
+                f"Urgency P(yes)={noul_probability:.3f}; "
+                f"yes threshold={urgency_yes_threshold:.2f}."
+            ),
         )
     except Exception as exc:
         fallback = deterministic_route(exception_dossier)
+        # Include a concise exception message to make optional integration issues diagnosable.
+        detail = str(exc).replace("\n", " ")[:240]
         return ExceptionAssessment(
             route=fallback.route, urgent=None, severity=None, confidence={},
             source="local_fallback_error",
-            reason=(f"Decision 1 call or response failed ({type(exc).__name__}); "
+            reason=(f"Decision 1 call or response failed ({type(exc).__name__}: {detail}); "
                     "urgency and severity are intentionally left unset."),
         )

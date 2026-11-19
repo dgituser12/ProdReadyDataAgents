@@ -20,6 +20,7 @@ VIEW_NAMES = (
     "v_fulfillment_order_exposure",
     "v_inventory_risk_summary",
     "v_fulfillment_risk_summary",
+    "v_supplier_cross_domain_risk",
 )
 EXPECTED_ROWS = {
     "suppliers": 8,

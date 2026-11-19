@@ -1,17 +1,30 @@
 # Governed Data Harness
 
-The Data Harness is a governed data-access layer between agents and enterprise sources. It separates the agent from source-specific connection logic and enforces a semantic and policy contract before data is returned.
+The workshop Data Harness makes business-data understanding and access a first-class layer between ADK agents and BigQuery.
 
-## Included implementation
+## Components
 
-- `SemanticCatalogue` resolves canonical metric IDs, units, interpretations and caveats from `semantic_catalogue/metrics.json`.
-- `HarnessPolicy` allow-lists sources and metric IDs and defaults to read-only access.
-- `DataSourceAdapter` defines the contract for additional source adapters.
-- `BigQuerySemanticViewAdapter` is the working workshop adapter. It only reads a fixed allow-list of approved semantic views with a bounded row limit.
-- `GovernedDataHarness` resolves the metric, checks policy and invokes the selected adapter.
+- `SemanticCatalogue` loads canonical metric definitions, units, formulae, grain and caveats.
+- `SemanticQueryPlanner` maps familiar business questions to approved metric IDs and dimensions. It plans; it does not generate arbitrary SQL.
+- `BigQuerySchemaDiscovery` inspects only an explicit allow-list of semantic views and returns a timestamped schema snapshot.
+- `ReadOnlyQueryValidator` accepts one bounded `SELECT` over approved semantic views, rejects mutation/remote operations and requires a numeric `LIMIT`.
+- `run_validated_bigquery_query` performs a dry run, applies a maximum-bytes-billed ceiling and then executes the validated query.
+- `GovernedDataHarness` resolves metric definitions, enforces source/metric policy and invokes approved read-only tools.
+- `build_evidence_provenance` records metric identity, unit, grain, source view, snapshot date, retrieval time, query hash, query job ID (when available), bytes processed (when available), row count and validation checks.
+- `DataSourceAdapter` defines an extension contract for additional data platforms. Only BigQuery is implemented and exercised in this workshop.
 
-## Extending to federated sources
+## Important security boundary
 
-Implement `fetch_metric(metric_id, parameters)` for another source and register it by a source name. Add the source name and permitted metric IDs to `HarnessPolicy`. Do not expose raw connection credentials or unrestricted SQL to the agent. A real additional source still requires its own network connectivity, identity, IAM/ACLs, source-side policies, audit logging and integration tests.
+This is a deliberately narrow workshop implementation, not a complete SQL parser, query firewall or replacement for BigQuery IAM. The query validator is a second application-level guard. BigQuery IAM, dataset/view permissions, service-account policy, audit logging and network controls remain authoritative. The core agent tools use fixed SQL and typed parameters; participant-proposed SQL is only used in the explicit validation exercise.
 
-The workshop demonstrates the adapter and governance pattern using BigQuery. It does not provision a live cross-cloud federation service.
+## Data Agent workflow
+
+1. Interpret the business question.
+2. Resolve metric definitions and grain from the semantic catalogue.
+3. Discover approved view schemas rather than guessing columns.
+4. Produce a reviewable data plan.
+5. Validate source, SQL shape, result bounds and estimated cost.
+6. Retrieve evidence through approved tools.
+7. Attach provenance and validate the result before the agent explains it.
+
+The agent provides reasoning. The Data Harness supplies governed semantic understanding, data access and evidence lineage.

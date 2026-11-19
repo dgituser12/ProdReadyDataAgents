@@ -61,6 +61,9 @@ class BigQuerySemanticViewAdapter:
         "supplier.average_late_days": "v_supplier_delivery_performance",
         "fulfillment.overdue_open_orders": "v_fulfillment_risk_summary",
         "fulfillment.delayed_open_order_value_gbp": "v_fulfillment_risk_summary",
+        "supplier.inventory_exposure_gbp": "v_supplier_cross_domain_risk",
+        "supplier.products_below_safety_stock": "v_supplier_cross_domain_risk",
+        "supplier.overdue_open_order_value_gbp": "v_supplier_cross_domain_risk",
     }
 
     def __init__(self, project_id: str, dataset_id: str, location: str = "US", client: Any | None = None):
@@ -82,7 +85,8 @@ class BigQuerySemanticViewAdapter:
             bigquery.ScalarQueryParameter("row_limit", "INT64", min(int((parameters or {}).get("limit", 100)), 100))
         ])
         rows = [dict(row.items()) for row in self.client.query(sql, job_config=job_config, location=self.location).result()]
-        return {"source": self.source_name, "view": view, "metric_id": metric_id, "rows": rows}
+        return {"source": self.source_name, "view": view, "metric_id": metric_id, "rows": rows,
+                "row_count": len(rows), "query_sql": sql, "read_only": True}
 
 
 class GovernedDataHarness:
@@ -100,8 +104,9 @@ class GovernedDataHarness:
             raise TypeError("tool_callable must be callable")
         evidence = tool_callable(**(parameters or {}))
         return {
-            "metric": {"id": metric["id"], "name": metric["name"], "unit": metric["unit"], "interpretation": metric["interpretation"], "caveats": metric.get("caveats", [])},
+            "metric": {"id": metric["id"], "name": metric["name"], "unit": metric["unit"], "interpretation": metric["interpretation"], "formula": metric.get("formula"), "entity_grain": metric.get("entity_grain"), "caveats": metric.get("caveats", [])},
             "evidence": evidence,
+            "provenance": {"source": source_name, "metric_id": metric_id, "catalogue_file": self.catalogue.path.name, "retrieved_at_utc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()},
             "policy": {"source": source_name, "read_only": self.policy.read_only, "max_rows": self.policy.max_rows},
         }
 
@@ -114,9 +119,23 @@ class GovernedDataHarness:
         requested_limit = int(bounded_parameters.get("limit", self.policy.max_rows))
         bounded_parameters["limit"] = max(1, min(requested_limit, self.policy.max_rows))
         result = self.adapters[source_name].fetch_metric(metric_id, bounded_parameters)
+        from .governance import build_evidence_provenance
+        metric_contract = {"id": metric["id"], "name": metric["name"], "unit": metric["unit"],
+                           "interpretation": metric["interpretation"], "formula": metric.get("formula"),
+                           "entity_grain": metric.get("entity_grain"), "caveats": metric.get("caveats", [])}
+        evidence_payload = result
+        sql = result.get("query_sql", "") if isinstance(result, dict) else ""
+        provenance = build_evidence_provenance(
+            metric=metric_contract, source_view=(result.get("source_view") or result.get("view", "unknown")) if isinstance(result, dict) else "unknown",
+            sql=sql, row_count=result.get("row_count") if isinstance(result, dict) else None,
+            snapshot_date=(str(result.get("rows", [{}])[0].get("snapshot_date") or result.get("rows", [{}])[0].get("as_of_date"))
+                           if isinstance(result, dict) and result.get("rows") else None),
+            validation_checks=("semantic_metric_resolved", "source_allow_list", "read_only", "row_limit"),
+        )
         return {
-            "metric": {"id": metric["id"], "name": metric["name"], "unit": metric["unit"], "interpretation": metric["interpretation"], "caveats": metric.get("caveats", [])},
-            "evidence": result,
+            "metric": metric_contract,
+            "evidence": evidence_payload,
+            "provenance": provenance,
             "policy": {"source": source_name, "read_only": self.policy.read_only, "max_rows": self.policy.max_rows},
         }
 
@@ -127,3 +146,80 @@ def build_bigquery_harness(project_id: str, dataset_id: str, catalogue_path: str
     adapter = BigQuerySemanticViewAdapter(project_id, dataset_id, location)
     policy = HarnessPolicy(allowed_sources=("bigquery",), allowed_metric_ids=allowed_ids, max_rows=100, read_only=True)
     return GovernedDataHarness(catalogue, {"bigquery": adapter}, policy)
+
+# Business-question planning is deliberately deterministic in the core lab:
+# it resolves business language to approved semantic metrics before any data
+# retrieval. A model may propose a plan in an advanced extension, but policy
+# validation and allow-listed execution remain deterministic.
+@dataclass(frozen=True)
+class BusinessQuestionPlan:
+    question: str
+    domains: tuple[str, ...]
+    metric_ids: tuple[str, ...]
+    dimensions: tuple[str, ...]
+    source: str = "semantic_catalogue_rules"
+    requires_clarification: bool = False
+    clarification: str | None = None
+
+
+class SemanticQueryPlanner:
+    """Resolve common workshop business questions to approved metric plans."""
+    RULES = (
+        ("inventory", ("inventory", "stock", "shortage", "safety stock", "stockout")),
+        ("supplier", ("supplier", "vendor", "on-time", "on time", "late delivery", "lead time")),
+        ("fulfillment", ("fulfilment", "fulfillment", "order", "overdue", "customer delivery")),
+    )
+    METRICS = {
+        "inventory": ("inventory.products_below_safety_stock", "inventory.shortage_units", "inventory.value_at_risk_gbp"),
+        "supplier": ("supplier.on_time_delivery_rate", "supplier.late_deliveries", "supplier.average_late_days"),
+        "fulfillment": ("fulfillment.overdue_open_orders", "fulfillment.delayed_open_order_value_gbp"),
+    }
+    DIMENSION_TERMS = {
+        "supplier": ("supplier", "vendor"),
+        "product": ("product", "sku"),
+        "warehouse": ("warehouse", "site"),
+        "category": ("category", "categories"),
+        "date": ("trend", "over time", "by date", "snapshot"),
+    }
+
+    def __init__(self, catalogue: SemanticCatalogue):
+        self.catalogue = catalogue
+
+    def plan(self, question: str) -> BusinessQuestionPlan:
+        if not question or not question.strip():
+            raise ValueError("A business question is required.")
+        q = question.casefold()
+        domains = tuple(domain for domain, terms in self.RULES if any(term in q for term in terms))
+        if not domains:
+            return BusinessQuestionPlan(question, (), (), (), requires_clarification=True,
+                clarification="I could not map the question to an approved inventory, supplier or fulfilment domain. Please specify the business subject.")
+        metric_ids = []
+        for domain in domains:
+            metric_ids.extend(self.METRICS[domain])
+        # Cross-domain supplier attribution is only selected when the question
+        # explicitly asks to relate suppliers to stock or order exposure.
+        if "supplier" in domains and ("inventory" in domains or "fulfillment" in domains):
+            metric_ids.extend(("supplier.inventory_exposure_gbp", "supplier.products_below_safety_stock", "supplier.overdue_open_order_value_gbp"))
+        # Validate every planned metric against the catalogue, not just the rule table.
+        for metric_id in metric_ids:
+            self.catalogue.get_metric(metric_id)
+        dimensions = tuple(name for name, terms in self.DIMENSION_TERMS.items() if any(term in q for term in terms))
+        return BusinessQuestionPlan(question, domains, tuple(dict.fromkeys(metric_ids)), dimensions)
+
+
+def plan_business_question(question: str, catalogue_path: str | Path | None = None) -> dict[str, Any]:
+    """Public helper for notebook and agent use; plans but does not execute SQL."""
+    if catalogue_path is None:
+        catalogue_path = Path(__file__).resolve().parents[1] / "semantic_catalogue" / "metrics.json"
+    planner = SemanticQueryPlanner(SemanticCatalogue(catalogue_path))
+    result = planner.plan(question)
+    return {
+        "question": result.question,
+        "domains": list(result.domains),
+        "metric_ids": list(result.metric_ids),
+        "dimensions": list(result.dimensions),
+        "source": result.source,
+        "requires_clarification": result.requires_clarification,
+        "clarification": result.clarification,
+        "execution": "not_executed",
+    }

@@ -129,3 +129,18 @@ The 150-minute agenda is in [docs/FACILITATION_150_MIN.md](docs/FACILITATION_150
 ## Participant notebooks
 
 **Notebook location:** `notebooks/` is the single canonical location for all three participant notebooks. There are no duplicate notebook copies at the repository root. Open the `.ipynb` files from that directory in Google Colab.
+
+## Why this is a Data Agent workshop
+
+The workshop distinguishes a general-purpose agent from an enterprise Data Agent through a repeatable **business-question-to-evidence** workflow:
+
+1. Resolve business language to canonical metric definitions in `semantic_catalogue/metrics.json`.
+2. Produce a reviewable semantic plan (domains, metric IDs and dimensions) with `SemanticQueryPlanner` in `data_harness/core.py`.
+3. Enforce approved source/metric policies and read-only access through the Data Harness.
+4. Retrieve bounded evidence from allow-listed BigQuery semantic views.
+5. Preserve metric formula, unit, entity grain, caveats and retrieval provenance for the agent's explanation.
+6. Evaluate data correctness separately from conversational quality.
+
+The Data Harness now includes allow-listed BigQuery schema discovery, a conservative read-only SQL validator, dry-run cost checks with a maximum-bytes-billed ceiling, and evidence provenance (metric contract, source view, snapshot date, query fingerprint and validation checks). These are application-level safeguards and do not replace BigQuery IAM. See `data_harness/README.md` for the boundaries and workflow.
+
+The workshop adds `v_supplier_cross_domain_risk`, a supplier-grain semantic view. Inventory exposure and overdue-order exposure are aggregated independently before joining to supplier delivery performance, preventing raw fact-table fan-out. Supplier attribution is explicitly association, not proof of causation.
