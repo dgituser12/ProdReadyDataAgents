@@ -4,7 +4,7 @@ GDG Essex workshop · 150 minutes · Google Colab participant experience
 
 ## Start here
 
-Open any practical notebook directly in Google Colab from the public GitHub repository. Each practical notebook has a first cell that clones the repository (if necessary), installs dependencies, writes the participant configuration and calls the shared `setup/workshop_setup.py` module.
+Open any practical notebook directly in Google Colab from the public GitHub repository. Each practical notebook bootstraps the repository and dependencies, then provides one clearly marked **Participant configuration** cell. That cell writes a runtime YAML file and calls the shared `setup/workshop_setup.py` module.
 
 **There is no separate Notebook 0.** The practical notebooks are independently launchable. Participants do not need a terminal, local IDE, manual Git commands or a Gemini API key.
 
@@ -63,9 +63,9 @@ Business definitions: inventory value at risk = shortage units × unit cost (not
 ## Organiser publication checklist
 
 1. Create a public GitHub repository named `enterprise-data-agents-gdg-essex`.
-2. Replace the repository URL placeholder in the first cell of each practical notebook.
+2. Replace the repository URL placeholder in the bootstrap cell of each practical notebook.
 3. Publish a source BigQuery dataset in US containing the four workshop tables.
-4. Update source project/dataset placeholders in `config/workshop_config.yaml` and the notebook bootstrap cell.
+4. Supply the source project and dataset identifiers in the Participant configuration cell of each practical notebook (the organiser should prefill these before the event).
 5. Grant participants source dataset read access and appropriate permissions in their own Google Cloud projects.
 6. Test each notebook from a fresh Colab runtime.
 7. Add “Open in Colab” links once the final repository URL is known.

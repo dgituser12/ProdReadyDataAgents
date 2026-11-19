@@ -18,3 +18,8 @@
 - Added deterministic specialist planning, bounded delegation-plan validation and multi-agent evaluation fixtures.
 - Added Track A coordinator wrappers around one injected managed Conversational Analytics data agent.
 - Expanded documentation to distinguish prompt scoping from IAM/security boundaries and local tests from live integration.
+
+## Participant configuration cell refresh
+- Separated repository bootstrap/dependency installation from the single participant-editable configuration cell in Notebook 1.
+- Configuration is written to the Colab runtime clone; participants do not edit GitHub files or manually open YAML.
+- Removed duplicate introductory learning-objective and mental-model sections.
