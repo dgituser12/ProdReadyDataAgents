@@ -1,102 +1,73 @@
-# Enterprise Data Agents on Google Cloud — GDG Essex
+# **Building Production-Grade Data Agents on GCP**
 
-**Workshop:** From Data to Action: Building Enterprise Data Agents with Google Cloud  
-**Format:** 150-minute hands-on workshop  
-**Learning path:** single Data Agent → domain specialists → coordinator-led multi-agent system
+GDG Essex workshop · 150 minutes · Google Colab participant experience
 
-This is the consolidated workshop codebase. It combines the original v1 data foundation with the v2 progressive agent architecture. There is one copy of each shared component; v1 and v2 are not separate participant downloads.
+## Start here
 
-> **Current status:** This repository is the pre-notebook technical baseline. The four Colab notebooks will be added after the ADK and Google Cloud integration checks in [TESTING.md](TESTING.md) have been completed.
+Open any practical notebook directly in Google Colab from the public GitHub repository. Each practical notebook has a first cell that clones the repository (if necessary), installs dependencies, writes the participant configuration and calls the shared `setup/workshop_setup.py` module.
 
-## Learning architecture
+**There is no separate Notebook 0.** The practical notebooks are independently launchable. Participants do not need a terminal, local IDE, manual Git commands or a Gemini API key.
 
-1. **Beginner — single agent:** one focused, read-only Data Agent answers a business question using approved tools and canonical business definitions.
-2. **Intermediate — specialists:** Inventory, Supplier and Fulfilment specialists receive domain-specific instructions, Skills and narrow tool allow-lists.
-3. **Advanced — coordinator:** an ADK coordinator delegates to one or more specialists and synthesises their evidence for cross-domain questions.
+## Notebook sequence
 
-## Repository contents
-
-| Path | Purpose |
+| Notebook | Purpose |
 |---|---|
-| `data/` | Synthetic Essex distribution-centre CSV data and manifest |
-| `scripts/` | Generate, validate, load and calculate business metrics |
-| `semantic_catalogue/` | Canonical metric definitions, glossary and BigQuery views |
-| `tools/` | Read-only, parameterised BigQuery business tools |
-| `skills/` | Inventory, Supplier and Fulfilment Agent Skills |
-| `orchestration/` | Routing, route policy, delegation planning and ADK agent factories |
-| `evals/` | Labelled routing and specialist-selection fixtures |
-| `tests/` | Unit tests for data, metrics, tools, skills and orchestration |
-| `docs/` | Architecture and implementation notes |
+| 1 — Build Your First Enterprise Data Agent | Build a read-only Gemini + ADK agent over BigQuery |
+| 2 — Give Your Agent Enterprise Expertise | Zetaris-inspired Data Harness, semantic catalogue, Agent Skills and three specialists |
+| 3 — Build the Multi-Agent System | Coordinator, bounded delegation, guardrails, evaluation and observability |
+| 4 — Enterprise Reference Hub | Production architecture, security, federation, memory and advanced integrations |
 
-## Quick start — local checks
+Notebook titles intentionally do not use labels such as beginner, intermediate or advanced. The learning progression is expressed through the material and exercises.
 
-The data generator, validator, metric calculator, routing baselines and unit tests use Python's standard library. BigQuery and ADK integrations are optional until you run the live-cloud checks.
+## Shared setup architecture
 
-```bash
-git clone https://github.com/<your-github-username>/enterprise-data-agents-gdg-essex.git
-cd enterprise-data-agents-gdg-essex
+- `setup/workshop_setup.py`: shared authentication, Vertex AI configuration, BigQuery dataset preparation, server-side table copies, semantic view creation and validation.
+- `config/workshop_config.yaml`: participant-editable, non-secret project/model/source identifiers.
+- `config/workshop_config.example.yaml`: configuration template.
+- `requirements-agent.txt`: pinned compatible ADK / Google Gen AI / BigQuery dependencies.
 
-python scripts/validate_data.py --input-dir data/sample
-python scripts/calculate_metrics.py --input-dir data/sample
-python scripts/evaluate_router.py
-python scripts/evaluate_multi_agent.py
-python -m unittest discover -s tests -v
-```
+The setup is idempotent:
+- Existing destination tables are never overwritten.
+- Existing semantic views are not replaced automatically.
+- Re-running setup validates the environment and reuses existing resources.
 
-See [TESTING.md](TESTING.md) for the full validation sequence and expected results.
+Authentication uses Google Colab ADC and explicitly configures Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`). The Gemini model location (`global`) is separate from the BigQuery dataset location (`US`).
 
-## Synthetic business scenario
+## Workshop scenario
 
-The sample dataset represents **Essex Central Distribution Centre** (`WH-ESSEX-01`), with GBP as the currency and a snapshot date of `2026-10-01`.
-
+Essex Central Distribution Centre (`WH-ESSEX-01`), synthetic data, snapshot `2026-10-01`, currency GBP:
 - 8 suppliers
 - 60 products
 - 60 inventory snapshot rows
 - 500 fulfilment orders
 
-The data is synthetic and intended for education. The business definitions in `semantic_catalogue/` are authoritative for this workshop.
+Tables: `suppliers`, `products`, `inventory_snapshot`, `fulfillment_orders`.
 
-Important metric distinctions:
+Semantic views:
+- `v_inventory_product_risk`
+- `v_supplier_delivery_performance`
+- `v_fulfillment_order_exposure`
+- `v_inventory_risk_summary`
+- `v_fulfillment_risk_summary`
 
-- Inventory value at risk = shortage units × unit cost; it is not lost revenue.
-- Supplier profile risk tier is distinct from observed delivery performance.
-- Late delivered orders are distinct from overdue open orders.
-- Lead time is modelled at supplier level.
+Business definitions: inventory value at risk = shortage units × unit cost (not lost revenue); supplier profile risk tier is distinct from observed delivery performance; late delivered orders differ from overdue open orders.
 
-## Google Cloud and agent setup
+## Architecture choices
 
-The live agent track targets the versions in `requirements-agent.txt`. Install those dependencies only when you are ready to run the ADK and BigQuery integration checks:
+- Core implementation: ADK + BigQuery, read-only tools.
+- Managed comparison: Conversational Analytics, optional and subject to service/API verification.
+- Optional routing: Decision 1 model, with deterministic fallback.
+- Observability: Colab traces as baseline; BigQuery Agent Analytics as an optional advanced integration.
+- Data Harness: Zetaris-inspired governed/federated data-access pattern demonstrated with BigQuery, semantic views, semantic catalogue and scoped tools. The workshop does not deploy Zetaris or claim live cross-cloud federation.
 
-```bash
-python -m pip install -r requirements-agent.txt
-```
+## Organiser publication checklist
 
-You will also need a Google Cloud project, the required APIs and IAM permissions, and Application Default Credentials (ADC). In Colab, use the supported user authentication flow. Do not upload or commit service-account JSON keys.
+1. Create a public GitHub repository named `enterprise-data-agents-gdg-essex`.
+2. Replace the repository URL placeholder in the first cell of each practical notebook.
+3. Publish a source BigQuery dataset in US containing the four workshop tables.
+4. Update source project/dataset placeholders in `config/workshop_config.yaml` and the notebook bootstrap cell.
+5. Grant participants source dataset read access and appropriate permissions in their own Google Cloud projects.
+6. Test each notebook from a fresh Colab runtime.
+7. Add “Open in Colab” links once the final repository URL is known.
 
-The BigQuery loader is explicit about dataset creation and write mode. Review its arguments before running it against a project. The agent-facing query tools are read-only and use fixed SQL, typed parameters and row/bytes limits.
-
-## Two implementation tracks
-
-- **Track A — Managed Conversational Analytics + ADK:** an injected managed data-agent callable is wrapped by ADK. The coordinator example uses three domain-scoped ADK wrappers over one configured managed data agent; these are not three separately provisioned managed resources. Prompt scopes are not security boundaries.
-- **Track B — ADK + BigQuery:** custom ADK agents use the shared read-only BigQuery tools, semantic catalogue and Agent Skills.
-
-The managed Conversational Analytics resource and its permissions are configured in the user's Google Cloud environment and are not stored in this repository.
-
-## Safety and scope
-
-- Workshop agents and tools are read-only. No purchasing, stock mutation, supplier contact or other business write action is implemented.
-- Never commit API keys, access tokens, credentials, real customer data or local `.env` files.
-- Skills provide task guidance; they are not security controls. IAM, data permissions and tool allow-lists remain essential.
-- A passing local test suite is not proof of a live cloud integration or production readiness.
-
-## Public repository setup
-
-1. Create a **public** repository in your personal GitHub account named `enterprise-data-agents-gdg-essex`.
-2. Push this repository's contents to the `main` branch.
-3. Replace `<your-github-username>` in this README with your GitHub username.
-4. Add the four Colab notebooks and their **Open in Colab** links after the integration validation gate is complete.
-5. Tag the eventual participant-ready workshop snapshot as a GitHub release.
-
-## Licence
-
-Add the licence you intend to publish this material under before making the repository public. No licence has been selected in this starter package.
+Maintainer scripts and unit tests are for repository maintenance; they are not part of the participant workflow.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Colab-first shared setup architecture
+- Replaced participant Notebook 0 with reusable `setup/workshop_setup.py` and non-secret YAML configuration.
+- Practical notebooks bootstrap the repository and dependencies from inside Colab, then initialise ADC, Vertex AI, BigQuery copies and semantic views.
+- Existing tables and views are preserved on reruns; no API key is required for the Vertex AI path.
+- Standardised the workshop title as **Building Production-Grade Data Agents on GCP** and removed level labels from notebook titles.
+
+
 ## Orchestration v2
 
 - Preserved the v1 synthetic data, metrics, semantic catalogue, BigQuery tools and inventory Skill.
