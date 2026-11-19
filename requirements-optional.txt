@@ -1,0 +1,8 @@
+# Optional integrations; do not install for the core 150-minute workshop.
+# Governed Conversational Analytics ADK bridge (DataAgentToolset):
+# The core google-adk pin is used; ensure the installed version includes DataAgentToolset.
+# Gemini Decision 1 uses the already-pinned google-genai>=3.2.0,<4 and a separate AI Studio API key.
+# BigQuery Agent Analytics plugin and its PyArrow/Storage Write API dependencies:
+google-adk[bigquery-analytics]==2.14.0
+# Optional trace reconstruction/evaluation SDK:
+bigquery-agent-analytics

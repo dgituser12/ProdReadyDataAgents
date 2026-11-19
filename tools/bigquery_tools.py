@@ -197,14 +197,28 @@ class SupplyChainBigQueryTools:
 
 def build_tool_functions(project_id: str, dataset_id: str = DEFAULT_DATASET,
                          location: str = DEFAULT_LOCATION) -> dict[str, Any]:
-    """Return named callables for agent frameworks; initialise once per session."""
+    """Return agent callables routed through the governed Data Harness."""
+    from functools import wraps
+    from pathlib import Path
+    from data_harness.core import build_bigquery_harness
+
     tools = SupplyChainBigQueryTools(project_id, dataset_id, location)
+    catalogue_path = Path(__file__).resolve().parents[1] / "semantic_catalogue" / "metrics.json"
+    harness = build_bigquery_harness(project_id, dataset_id, catalogue_path, location)
+
+    def governed(metric_id: str, fn: Any) -> Any:
+        @wraps(fn)
+        def invoke(**kwargs: Any) -> dict[str, Any]:
+            return harness.invoke_tool(metric_id, fn, kwargs, source_name="bigquery")
+        invoke.__doc__ = (fn.__doc__ or "") + " Governed by the workshop Data Harness; read-only, semantic metric allow-list enforced."
+        return invoke
+
     return {
-        "get_inventory_risk": tools.inventory_risk,
-        "get_supplier_performance": tools.supplier_performance,
-        "get_fulfillment_exposure": tools.fulfillment_exposure,
-        "get_inventory_summary": tools.inventory_summary,
-        "get_fulfillment_summary": tools.fulfillment_summary,
+        "get_inventory_risk": governed("inventory.value_at_risk_gbp", tools.inventory_risk),
+        "get_supplier_performance": governed("supplier.on_time_delivery_rate", tools.supplier_performance),
+        "get_fulfillment_exposure": governed("fulfillment.overdue_open_orders", tools.fulfillment_exposure),
+        "get_inventory_summary": governed("inventory.shortage_units", tools.inventory_summary),
+        "get_fulfillment_summary": governed("fulfillment.delayed_open_order_value_gbp", tools.fulfillment_summary),
     }
 
 

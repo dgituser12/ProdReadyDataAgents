@@ -1,1 +1,1 @@
-"""Shared Colab workshop setup package."""
+"""Shared Colab workshop setup."""
