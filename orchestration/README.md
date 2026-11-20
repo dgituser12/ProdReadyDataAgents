@@ -35,7 +35,7 @@ decision = route_question(
 )
 ```
 
-Or set `USE_DECISION_MODEL=true`. The adapter uses the Google Gen AI SDK Decisions API, model `gemini-decision-1`, API version `v1beta`. Install `google-genai>=3.2.0,<4` and set `GEMINI_API_KEY`. If the API call fails, returns an invalid route or falls below the confidence threshold, routing falls back to deterministic local rules. Decision 1 only classifies; it never writes SQL, selects a table, authorises a tool or executes an action.
+Decision 1 is retained as an illustrative integration only and is not enabled in the workshop environment. Its Decisions API requires `google-genai>=3.2.0,<4`, which conflicts with the `google-genai<3` dependency required by the pinned ADK 2.14.0 environment. Do not upgrade the SDK or install a separate Decision 1 dependency set for this workshop. Use the deterministic local router.
 
 The default threshold of 0.70 is a workshop starting value, not a validated production threshold. Calibrate it against labelled examples. Run `python scripts/evaluate_router.py` for the small labelled routing fixture; its score is not production evidence.
 

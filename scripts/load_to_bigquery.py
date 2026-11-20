@@ -15,7 +15,7 @@ def exists(client,table_id):
     except NotFound: return False
 def main():
     p=argparse.ArgumentParser(description=__doc__); p.add_argument('--project',required=True); p.add_argument('--dataset',required=True); p.add_argument('--input-dir',type=Path,default=Path('data/sample')); p.add_argument('--location',default='US'); p.add_argument('--write-mode',choices=['fail','truncate','append'],default='fail'); p.add_argument('--create-dataset',action='store_true'); a=p.parse_args()
-    if bigquery is None: raise SystemExit('Install dependency: pip install google-cloud-bigquery')
+    if bigquery is None: raise SystemExit('Install workshop dependencies: pip install -r requirements-agent.txt')
     client=bigquery.Client(project=a.project); ds=f'{a.project}.{a.dataset}'
     if a.create_dataset:
         d=bigquery.Dataset(ds); d.location=a.location; client.create_dataset(d,exists_ok=True)

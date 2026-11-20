@@ -78,7 +78,7 @@ Important metric distinctions:
 
 ## Google Cloud and agent setup
 
-The live agent track targets the versions in `requirements-agent.txt`. Install those dependencies only when you are ready to run the ADK and BigQuery integration checks:
+The workshop uses one participant dependency file, `requirements-agent.txt`. It includes ADK, the compatible Google Gen AI SDK, BigQuery access and the BigQuery Agent Analytics plugin extra. Decision 1 dependencies are intentionally excluded because they conflict with the pinned ADK SDK range. Each Colab notebook installs this same file during bootstrap:
 
 ```bash
 python -m pip install -r requirements-agent.txt

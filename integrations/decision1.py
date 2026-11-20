@@ -23,9 +23,9 @@ def create_decision1_client(api_key: str | None = None) -> Any:
     client = genai.Client(api_key=key, http_options={"api_version": "v1beta"})
     if not hasattr(client, "decisions"):
         raise RuntimeError(
-            "This google-genai SDK does not expose client.decisions. "
-            f"Installed version: {sdk_version}. Upgrade to google-genai>=3.2.0,<4, "
-            "then restart the Colab runtime and rerun the notebook from the top."
+            "Decision 1 is an illustrative integration only and is disabled in this workshop. "
+            "Its SDK requirement conflicts with the pinned ADK 2.14.0 environment; "
+            f"installed google-genai version: {sdk_version}. Keep ENABLE_DECISION_AGENT=False."
         )
     return client
 
@@ -69,8 +69,8 @@ def assess_supply_chain_exception(
         raise ValueError("urgency_yes_threshold must be between 0 and 1")
     if not hasattr(client, "decisions"):
         raise RuntimeError(
-            "The supplied client has no Decisions API interface. "
-            "Use create_decision1_client() with google-genai>=3.2.0,<4."
+            "The supplied client has no Decisions API interface. Decision 1 is not supported "
+            "in the workshop dependency environment; use deterministic routing."
         )
 
     questions = {

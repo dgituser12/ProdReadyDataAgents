@@ -14,6 +14,6 @@ def attach_bigquery_agent_analytics(root_agent: Any, project_id: str, dataset_id
         from google.adk.apps import App
         from google.adk.plugins.bigquery_agent_analytics_plugin import BigQueryAgentAnalyticsPlugin
     except ImportError as exc:
-        raise RuntimeError('Install with: pip install "google-adk[bigquery-analytics]==2.14.0"') from exc
+        raise RuntimeError('The BigQuery Agent Analytics extra is included in requirements-agent.txt; rerun the notebook bootstrap if it is unavailable.') from exc
     plugin = BigQueryAgentAnalyticsPlugin(project_id=project_id, dataset_id=dataset_id, location=location)
     return App(name=app_name, root_agent=root_agent, plugins=[plugin])

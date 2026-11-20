@@ -45,7 +45,7 @@ the required dataset/views. Do not rely on agent instructions as authorization.
 ## Setup
 
 ```bash
-pip install google-cloud-bigquery
+pip install -r requirements-agent.txt
 gcloud auth application-default login
 ```
 
