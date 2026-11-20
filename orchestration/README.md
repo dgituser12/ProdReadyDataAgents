@@ -8,7 +8,7 @@ This package now supports the workshop progression from a single agent to a coor
 2. **Specialists:** `orchestration.agents.build_specialist_agents()` creates Inventory, Supplier and Fulfilment agents with narrow read-only tool access and domain Skills.
 3. **Coordinator:** `orchestration.agents.build_coordinator_agent()` creates a root `LlmAgent` with the three specialists as `single_turn` sub-agents. ADK exposes these as delegation tools to the coordinator.
 
-The factories target `google-adk==2.14.0`. The ADK collaboration API supports `sub_agents` and `mode="single_turn"` for specialist agents. The coordinator is the root; do not assign it a sub-agent mode. The ADK package is not installed in the lightweight test environment used for this repository build, so these factories have been syntax-checked and reviewed against the official 2.14.0 docs but have not been executed against a live ADK runtime. See the repository README and test notes.
+The factories target `google-adk==2.15.0`. The ADK collaboration API supports `sub_agents` and `mode="single_turn"` for specialist agents. The coordinator is the root; do not assign it a sub-agent mode. The ADK package is not installed in the lightweight test environment used for this repository build, so these factories have been syntax-checked and reviewed against the official 2.15.0 docs but have not been executed against a live ADK runtime. See the repository README and test notes.
 
 ## Route contract
 
@@ -35,7 +35,7 @@ decision = route_question(
 )
 ```
 
-Decision 1 is retained as an illustrative integration only and is not enabled in the workshop environment. Its Decisions API requires `google-genai>=3.2.0,<4`, which conflicts with the `google-genai<3` dependency required by the pinned ADK 2.14.0 environment. Do not upgrade the SDK or install a separate Decision 1 dependency set for this workshop. Use the deterministic local router.
+Decision 1 is retained as an illustrative integration only and is not enabled in the workshop environment. Its Decisions API requires `google-genai>=3.2.0,<4`, which conflicts with the `google-genai<3` dependency required by the pinned ADK 2.15.0 environment. Do not upgrade the SDK or install a separate Decision 1 dependency set for this workshop. Use the deterministic local router.
 
 The default threshold of 0.70 is a workshop starting value, not a validated production threshold. Calibrate it against labelled examples. Run `python scripts/evaluate_router.py` for the small labelled routing fixture; its score is not production evidence.
 

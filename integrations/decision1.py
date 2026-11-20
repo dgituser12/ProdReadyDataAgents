@@ -24,7 +24,7 @@ def create_decision1_client(api_key: str | None = None) -> Any:
     if not hasattr(client, "decisions"):
         raise RuntimeError(
             "Decision 1 is an illustrative integration only and is disabled in this workshop. "
-            "Its SDK requirement conflicts with the pinned ADK 2.14.0 environment; "
+            "Its SDK requirement conflicts with the pinned ADK 2.15.0 environment; "
             f"installed google-genai version: {sdk_version}. Keep ENABLE_DECISION_AGENT=False."
         )
     return client

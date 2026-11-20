@@ -150,7 +150,7 @@ def create_track_a_coordinator_adk_agent(
         from google.adk.agents import LlmAgent
     except ImportError as exc:
         raise RuntimeError(
-            "Install google-adk==2.14.0 from requirements-agent.txt"
+            "Install google-adk==2.15.0 from requirements-agent.txt"
         ) from exc
 
     def make_domain_tool(route: str):

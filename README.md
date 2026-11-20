@@ -1,7 +1,7 @@
 # Enterprise Data Agents on Google Cloud — GDG Essex
 
 **Workshop:** From Data to Action: Building Enterprise Data Agents with Google Cloud  
-**Format:** 150-minute hands-on workshop  
+**Format:** 165-minute hands-on workshop  
 **Learning path:** single Data Agent → domain specialists → coordinator-led multi-agent system
 
 This is the consolidated workshop codebase. It combines the original v1 data foundation with the v2 progressive agent architecture. There is one copy of each shared component; v1 and v2 are not separate participant downloads.
@@ -101,7 +101,7 @@ The `data_harness/` package provides a working BigQuery-backed Data Harness: can
 
 ## Optional integrations
 
-The repository contains optional code for a managed Conversational Analytics Data Agent via ADK `DataAgentToolset`, Gemini Decision 1 routing, and persistent BigQuery Agent Analytics. All are outside the core 150-minute path and disabled by default. See [docs/OPTIONAL_INTEGRATIONS.md](docs/OPTIONAL_INTEGRATIONS.md).
+The repository contains optional code for a managed Conversational Analytics Data Agent via ADK `DataAgentToolset`, Gemini Decision 1 routing, and persistent BigQuery Agent Analytics. All are outside the core workshop path and disabled by default. See [docs/OPTIONAL_INTEGRATIONS.md](docs/OPTIONAL_INTEGRATIONS.md).
 
 ## Safety and scope
 
@@ -124,7 +124,7 @@ Add the licence you intend to publish this material under before making the repo
 
 ## Workshop facilitation
 
-The 150-minute agenda is in [docs/FACILITATION_150_MIN.md](docs/FACILITATION_150_MIN.md). It allocates 20 minutes to the opening talk, 25 minutes to Notebook 1, 35 minutes to Notebook 2, 35 minutes to Notebook 3, and preserves time for a break, Q&A and close.
+The 165-minute agenda is in [docs/FACILITATION_150_MIN.md](docs/FACILITATION_150_MIN.md). It allocates 20 minutes to the opening talk, 30 minutes to Notebook 1, 45 minutes to Notebook 2, 45 minutes to Notebook 3, and preserves time for a break, Q&A and close.
 
 ## Participant notebooks
 

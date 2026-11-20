@@ -1,7 +1,7 @@
 """ADK agent factories: single-agent learning path and specialist team.
 
 ADK imports are lazy so dataset, router and policy exercises remain runnable
-without installing cloud dependencies. The factories target google-adk 2.14.0.
+without installing cloud dependencies. The factories target google-adk 2.15.0.
 """
 from __future__ import annotations
 
@@ -65,7 +65,7 @@ def _adk_imports():
         from google.adk.agents import LlmAgent
     except ImportError as exc:
         raise RuntimeError(
-            "Install google-adk==2.14.0 from requirements-agent.txt to build ADK agents."
+            "Install google-adk==2.15.0 from requirements-agent.txt to build ADK agents."
         ) from exc
     return LlmAgent
 

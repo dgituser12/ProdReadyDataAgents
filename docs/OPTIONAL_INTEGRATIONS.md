@@ -1,6 +1,6 @@
 # Optional integrations — code included, execution not required
 
-These integrations are deliberately outside the 150-minute core path. The repository includes runnable integration modules and notebook appendix examples. Participants can inspect the code without enabling any of them.
+These integrations are deliberately outside the core hands-on path. The repository includes runnable integration modules and notebook appendix examples. Participants can inspect the code without enabling any of them.
 
 ## 1. Managed Conversational Analytics data agent
 
@@ -8,7 +8,7 @@ These integrations are deliberately outside the 150-minute core path. The reposi
 
 ## 2. Gemini Decision 1 routing
 
-`integrations/decision1.py` creates an explicit Google AI Studio client for the Decisions API. Pass it to `orchestration.router.route_question(..., use_decision_model=True, client=client)`. The classifier only selects among the fixed route labels. It cannot select SQL, grant permissions or execute tools. The deterministic router remains the supported workshop path. Decision 1 is retained for architectural illustration only and must remain disabled: its Decisions API requires `google-genai>=3.2.0,<4`, which conflicts with the `google-genai<3` SDK range used by ADK 2.14.0. Do not upgrade or separately install SDK packages for this path.
+`integrations/decision1.py` creates an explicit Google AI Studio client for the Decisions API. Pass it to `orchestration.router.route_question(..., use_decision_model=True, client=client)`. The classifier only selects among the fixed route labels. It cannot select SQL, grant permissions or execute tools. The deterministic router remains the supported workshop path. Decision 1 is retained for architectural illustration only and must remain disabled: its Decisions API requires `google-genai>=3.2.0,<4`, which conflicts with the `google-genai<3` SDK range used by ADK 2.15.0. Do not upgrade or separately install SDK packages for this path.
 
 ## 3. BigQuery Agent Analytics
 

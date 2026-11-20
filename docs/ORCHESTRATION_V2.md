@@ -20,7 +20,7 @@ The synthetic data, generator, validator, BigQuery loader, business metrics, sem
 
 ## ADK API decision
 
-The ADK factories target `google-adk==2.14.0`. The implementation uses the documented `LlmAgent.sub_agents` collaboration model and `mode="single_turn"` for specialist sub-agents. Skill loading uses `google.adk.skills.load_skill_from_dir` with `google.adk.tools.skill_toolset.SkillToolset`.
+The ADK factories target `google-adk==2.15.0`. The implementation uses the documented `LlmAgent.sub_agents` collaboration model and `mode="single_turn"` for specialist sub-agents. Skill loading uses `google.adk.skills.load_skill_from_dir` with `google.adk.tools.skill_toolset.SkillToolset`.
 
 The local build environment did not have `google-adk` installed, and package installation was unavailable. Therefore:
 

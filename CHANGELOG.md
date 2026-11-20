@@ -1,3 +1,12 @@
+## Data Agent enhancement pass
+
+- Added a semantic metric comparison exercise to Notebook 1, emphasizing metric meaning, units and interpretation.
+- Added an executable BigQuery freshness and basic completeness preflight to Notebook 2; its status is injected into the Inventory Specialist context so stale data is qualified in agent answers.
+- Made query allow-list, row-bounding and bytes-billed controls more explicit across the practical notebooks.
+- Added an evidence-backed answer summary and executable data-aware evaluation scorecard to Notebook 3.
+- Updated the participant environment to the Colab-tested `google-adk[bigquery-analytics]==2.15.0`; Decision 1 SDK remains excluded.
+- Updated the facilitation plan to 165 minutes.
+
 # Changelog
 
 ## Orchestration v2
