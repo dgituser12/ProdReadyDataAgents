@@ -103,6 +103,11 @@ class GovernedDataHarness:
         if not callable(tool_callable):
             raise TypeError("tool_callable must be callable")
         evidence = tool_callable(**(parameters or {}))
+        # Standardise the view identifier in the evidence envelope. Individual
+        # BigQuery tools historically returned this as `view`; notebook checks
+        # and downstream consumers use the clearer `source_view` name.
+        if isinstance(evidence, dict) and "source_view" not in evidence and evidence.get("view"):
+            evidence = {**evidence, "source_view": evidence["view"]}
         return {
             "metric": {"id": metric["id"], "name": metric["name"], "unit": metric["unit"], "interpretation": metric["interpretation"], "formula": metric.get("formula"), "entity_grain": metric.get("entity_grain"), "caveats": metric.get("caveats", [])},
             "evidence": evidence,
